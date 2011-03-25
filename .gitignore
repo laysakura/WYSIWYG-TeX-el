@@ -2,7 +2,7 @@
 *#*
 *.elc
 test*
-
+*.html
 
 wysiwyg-tex-files*
 

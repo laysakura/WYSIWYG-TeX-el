@@ -30,11 +30,8 @@
      をダウンロード
   2. wysiwyg-tex.el を，ロードパスの通ったディレクトリに置く
   3. wysiwyg-tex.el を以下のようにバイトコンパイル
-
      : \M-x byte-compile-file [RET] /path/to/wysiwyg-tex.el
-
   4. ~/.emacs に以下の設定を追加 (設定内容は適宜変更してください)
-
      : (require 'wysiwyg-tex)
      : (add-hook 'tex-mode-hook   ; <.tex編集で使うモード>-hook
      :           '(lambda ()
@@ -46,9 +43,7 @@
      :              ;; tex-mode のみで有効なキーバインド
      :              (local-set-key "\C-c\C-p" 'wysiwyg-tex-show-preview) ; 編集中ページのみプレビュー
      :              (local-set-key "\C-cp" 'wysiwyg-tex-show-whole-preview))) ; 全ページプレビュー
-
      この他にも設定可能な項目があります (後述)
-
   5. Emacs を再起動
 
 * 使い方
@@ -63,12 +58,16 @@
   7. 全ページのプレビューが別のバッファに表示される． TeX が誤ってい
      れば，エラーログバッファが表示される．
 
+* 設定可能な変数
+  設定可能な変数は，
+  : \M-x customize [RET] -> Wysiwyg Tex
+  で確認できます．また， wysiwyg-tex.el のソース中の "defcustom" で定
+  義された変数でもありますので，ソースで確認したい方はそちらをどうぞ．
+
 * よくありそうな質問
   - /プレビューの表示されたバッファの操作方法がよく分からない/
     - そのバッファ上で
-
       : \M-x describe-mode [RET]
-
       で使い方が出ます．
 
   - /\C-c\C-p (wysiwyg-tex-show-preview) で， TeX ファイルに問題はない
@@ -82,17 +81,13 @@
       を中間ファイルの PS ファイルから検出することで，カーソルのあるペー
       ジを特定しています．
       そのマーカーは大雑把に言って，
-
       : \mbox{.,.,.}
-
       という形をしています．
       すなわち， *\mbox{} を挿入しても大丈夫な位置にカーソルがあるとき
       に \C-c\C-p (wysiwyg-tex-show-preview) を実行してください* とい
       うことになります．
       また，マーカーのリテラルは
-
       : .,.,.,
-
       なので，もしも自分で TEX ファイル中に ".,.,." と書いた部分があれ
       ば， \C-c\C-p (wysiwyg-tex-show-preview) は失敗します．
 
@@ -103,9 +98,7 @@
     - ごめんなさい． TeX 中で指定した画像ファイルなどのパスの解決が楽
       なので，同じディレクトリに沢山中間ファイルを置いてしまっています．
       あくまでも中間ファイルなので，ことあるごとに削除して大丈夫です．
-
       : rm -f wysiwyg-tex-files*
-
       でお願いします．
 
   - /タイプセットは成功してるっぽいのに，組版結果が表示されない/
@@ -119,14 +112,10 @@
       - doc-view-mode の裏で呼ばれる GhostScript が /usr/share/fonts/truetype/ から
         ttf-japanese-mincho.ttf を使うのにもかかわらず，
         ttf-japanese-mincho.otf しかない場合，
-
         : ls -l /usr/share/fonts/truetype/ttf-japanese-mincho.otf
-
         により， ttf-japanese-mincho.otf が指している実体 (.ttf ファイ
         ルのはず) を調査．そして，
-
         : ln -s <調査した実体のフルパス> /usr/share/fonts/truetype/ttf-japanese-mincho.ttf
-
         を実行．自分の場合はこれで doc-view-mode が正常に使えるように
         なりました．
 
@@ -142,5 +131,5 @@
       間掛かる気がします．掛からないかもしれません．
 
 
-* Follow Me on Tweeter
+* Follow Me on Twitter
   [[http://twitter.com/#!/laysakura][@laysakura]] でお待ちしてますよ!
