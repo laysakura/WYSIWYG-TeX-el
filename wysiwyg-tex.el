@@ -1,18 +1,78 @@
-;;; My settings
+;;; WYSIWYG-TeX.el --- Support WYSIWYG edit for TEX on Emacs
 
-;; (defadvice save-buffer (after wysiwyg-tex-after-save-buffer-advice ())
-;;   (if (string-equal major-mode "yatex-mode")
-;;       (wysiwyg-tex-show-preview)))
-;; ;(ad-enable-advice 'save-buffer 'after 'wysiwyg-tex-after-save-buffer-advice)
+;; Copyright (c) 2011, Sho Nakatani [@laysakura on twitter]
+;; All rights reserved.
 
-;; (add-hook 'yatex-mode-hook
+;; Redistribution and use in source and binary forms, with or without modification,
+;; are permitted provided that the following conditions are met:
+
+;;     * Redistributions of source code must retain the above copyright notice,
+;;       this list of conditions and the following disclaimer.
+
+;;     * Redistributions in binary form must reproduce the above copyright notice,
+;;       this list of conditions and the following disclaimer in the documentation
+;;       and/or other materials provided with the distribution.
+
+;;     * Neither the name of Zend Technologies USA, Inc. nor the names of its
+;;       contributors may be used to endorse or promote products derived from this
+;;       software without specific prior written permission.
+
+;; THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+;; ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+;; WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+;; DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+;; ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+;; (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+;; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+;; ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+;; (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+;; SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+;;; Commentary:
+;;
+;; WYSIWYG-TeX.el supports your WYSIWYG editting of TEX file on Emacs.
+;; WYSIWYG-TeX.el displays both:
+;;     * A page cursor is on
+;;     * Whole page typeset from TEX
+
+
+;;; Installation:
+;;
+;; Add following settings on ~/.emacs
+;;
+;; (require 'wysiwyg-tex)
+;; (add-hook 'tex-mode-hook   ; <mode-you-use-when-editting-tex>-hook
 ;;           '(lambda ()
-;;              (local-set-key "\C-c\C-p" 'wysiwyg-tex-show-preview)))
+;;              ;; Customizeable variables
+;;              (setq wysiwyg-tex-tex2dvi-command "latex" ; Command to convert TEX into DVI. ("latex" by default)
+;;                    wysiwyg-tex-using-color-package t ; Whether to always \usepackage{color}. (nil by default)
+;;                    wysiwyg-tex-typeset-3-times t) ; Whether to repeat typesetting 3 times (t by default)
+;;
+;;              ;; key-binds for tex-mode
+;;              (local-set-key "\C-c\C-p" 'wysiwyg-tex-show-preview) ; Displays a page around cursor.
+;;              (local-set-key "\C-cp" 'wysiwyg-tex-show-whole-preview))) ; Displays the whole page.
+
+
+;;; Usage:
+;;
+;; While visiting TEX buffer,
+;;     * \C-c\C-p (wysiwyg-tex-show-preview) : Displays a page around cursor.
+;;     * \C-cp (wysiwyg-tex-show-whole-preview) : Displays the whole page.
+;;
+;; If there is something wrong in TEX file, an error log appears instead of preview.
+
+
+;;; Further Information:
+;;
+;; See: https://github.com/laysakura/WYSIWYG-TeX-el
+
+
+;;; Code:
 
 (require 'doc-view)
 
 ;;; Customizable variables
-(defgroup wysiwyg-tex nil 
+(defgroup wysiwyg-tex nil
   "WYSIWYG TeX"
   :group 'emacs)
 
@@ -121,8 +181,6 @@ Normally, you don't need to change this variable."
 
 (defun wysiwyg-tex-marker ()
     ".,.,.")
-;; (defun wysiwyg-tex-marker-match-regex ()
-;;     "\\..?.?.?\\..?.?.?\\..?.?.?\\..?.?.?\\..?.?.?\\..?.?.?\\..?.?.?\\..?.?.?\\..?.?.?\\..?.?.?\\..?.?.?\\..?.?.?\\..?.?.?\\..?.?.?\\..?.?.?\\..?.?.?\\..?.?.?\\..?.?.?\\..?.?.?\\..?.?.?")
 
 (defun wysiwyg-tex-marker-to-insert-in-tex ()
   (if wysiwyg-tex-using-color-package
