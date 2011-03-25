@@ -26,13 +26,13 @@
   - doc-view-mode が正常に使えること (Emacs 23 以降には標準で入っています)
 
 * インストール
-  1. [[https://github.com/laysakura/WYSIWYG-TeX-el/raw/master/wysiwyg-tex.el][https://github.com/laysakura/WYSIWYG-TeX-el/raw/master/wysiwyg-tex.el]]
+  - [[https://github.com/laysakura/WYSIWYG-TeX-el/raw/master/wysiwyg-tex.el][https://github.com/laysakura/WYSIWYG-TeX-el/raw/master/wysiwyg-tex.el]]
      をダウンロード
-  2. wysiwyg-tex.el を，ロードパスの通ったディレクトリに置く
-  3. wysiwyg-tex.el を以下のようにバイトコンパイル
+  - wysiwyg-tex.el を，ロードパスの通ったディレクトリに置く
+  - wysiwyg-tex.el を以下のようにバイトコンパイル
      : \M-x byte-compile-file [RET] /path/to/wysiwyg-tex.el
 
-  4. ~/.emacs に以下の設定を追加 (設定内容は適宜変更してください)
+  - ~/.emacs に以下の設定を追加 (設定内容は適宜変更してください)
      #+BEGIN_SRC emacs-lisp
 (require 'wysiwyg-tex)
 (add-hook 'tex-mode-hook   ; <.tex編集で使うモード>-hook
@@ -46,9 +46,8 @@
              (local-set-key "\C-c\C-p" 'wysiwyg-tex-show-preview) ; 編集中ページのみプレビュー
              (local-set-key "\C-cp" 'wysiwyg-tex-show-whole-preview))) ; 全ページプレビュー
      #+END_SRC
-
      この他にも設定可能な項目があります (後述)
-  5. Emacs を再起動
+  - Emacs を再起動
 
 * 使い方
   1. Emacs で TEX ファイルを作成
@@ -92,7 +91,7 @@
       うことになります．
       また，マーカーのリテラルは
       : .,.,.,
-      なので，もしも自分で TEX ファイル中に ".,.,." と書いた部分があれ
+      なので，もしも自分で TEX ファイル中に =.,.,.= と書いた部分があれ
       ば， \C-c\C-p (wysiwyg-tex-show-preview) は失敗します．
 
       ともあれ，よく使う操作にコツが必要なのも考えものなので，バー
@@ -113,13 +112,21 @@
       これに関しては関知する必要はないのでしょうが，自分も同じ状態になっ
       て解決したので，その症状と解決方法を記しておきます．
 
-      - doc-view-mode の裏で呼ばれる GhostScript が /usr/share/fonts/truetype/ から
-        ttf-japanese-mincho.ttf を使うのにもかかわらず，
-        ttf-japanese-mincho.otf しかない場合，
-        : ls -l /usr/share/fonts/truetype/ttf-japanese-mincho.otf
+      - doc-view-mode の裏で呼ばれる GhostScript が =/usr/share/fonts/truetype/= から
+        =ttf-japanese-mincho.ttf= を使うのにもかかわらず，
+        =ttf-japanese-mincho.otf= しかない場合，
+
+        #+BEGIN_SRC sh
+         ls -l /usr/share/fonts/truetype/ttf-japanese-mincho.otf
+        #+END_SRC
+
         により， ttf-japanese-mincho.otf が指している実体 (.ttf ファイ
         ルのはず) を調査．そして，
-        : ln -s <調査した実体のフルパス> /usr/share/fonts/truetype/ttf-japanese-mincho.ttf
+
+        #+BEGIN_SRC sh
+         ln -s <調査した実体のフルパス> /usr/share/fonts/truetype/ttf-japanese-mincho.ttf
+        #+END_SRC
+
         を実行．自分の場合はこれで doc-view-mode が正常に使えるように
         なりました．
 
