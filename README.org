@@ -31,6 +31,7 @@
   2. wysiwyg-tex.el を，ロードパスの通ったディレクトリに置く
   3. wysiwyg-tex.el を以下のようにバイトコンパイル
      : \M-x byte-compile-file [RET] /path/to/wysiwyg-tex.el
+
   4. ~/.emacs に以下の設定を追加 (設定内容は適宜変更してください)
      : (require 'wysiwyg-tex)
      : (add-hook 'tex-mode-hook   ; <.tex編集で使うモード>-hook
