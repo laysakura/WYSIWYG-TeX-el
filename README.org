@@ -33,17 +33,20 @@
      : \M-x byte-compile-file [RET] /path/to/wysiwyg-tex.el
 
   4. ~/.emacs に以下の設定を追加 (設定内容は適宜変更してください)
-     : (require 'wysiwyg-tex)
-     : (add-hook 'tex-mode-hook   ; <.tex編集で使うモード>-hook
-     :           '(lambda ()
-     :              ;; 細かいカスタマイズ
-     :              (setq wysiwyg-tex-tex2dvi-command "platex" ; TEX から DVI に変換するコマンド (デフォルト "latex")
-     :                    wysiwyg-tex-using-color-package t ; TeX でいつも \usepackage{color} をしているか (デフォルト nil)
-     :                    wysiwyg-tex-typeset-3-times t) ; タイプセットを3回繰り返すか (デフォルト t)
-     : 
-     :              ;; tex-mode のみで有効なキーバインド
-     :              (local-set-key "\C-c\C-p" 'wysiwyg-tex-show-preview) ; 編集中ページのみプレビュー
-     :              (local-set-key "\C-cp" 'wysiwyg-tex-show-whole-preview))) ; 全ページプレビュー
+     #+BEGIN_SRC emacs-lisp
+(require 'wysiwyg-tex)
+(add-hook 'tex-mode-hook   ; <.tex編集で使うモード>-hook
+          '(lambda ()
+             ;; 細かいカスタマイズ
+             (setq wysiwyg-tex-tex2dvi-command "platex" ; TEX から DVI に変換するコマンド (デフォルト "latex")
+                   wysiwyg-tex-using-color-package t ; TeX でいつも \usepackage{color} をしているか (デフォルト nil)
+                   wysiwyg-tex-typeset-3-times t) ; タイプセットを3回繰り返すか (デフォルト t)
+
+             ;; tex-mode のみで有効なキーバインド
+             (local-set-key "\C-c\C-p" 'wysiwyg-tex-show-preview) ; 編集中ページのみプレビュー
+             (local-set-key "\C-cp" 'wysiwyg-tex-show-whole-preview))) ; 全ページプレビュー
+     #+END_SRC
+
      この他にも設定可能な項目があります (後述)
   5. Emacs を再起動
 
