@@ -179,6 +179,19 @@ Normally, you don't need to change this variable."
 (defun wysiwyg-tex-file-prefix ()
   "wysiwyg-tex-files")
 
+(defun wysiwyg-tex-tmp-tex-name ()
+  (concat (wysiwyg-tex-file-prefix) ".tex"))
+(defun wysiwyg-tex-tmp-dvi-name ()
+  (concat (wysiwyg-tex-file-prefix) ".dvi"))
+(defun wysiwyg-tex-whole-ps-name ()
+  (concat (wysiwyg-tex-file-prefix) ".ps"))
+(defun wysiwyg-tex-extracted-ps-name ()
+  (concat (wysiwyg-tex-file-prefix) "-extracted.ps"))
+(defun wysiwyg-tex-main-src-reminder-name ()
+  (concat (wysiwyg-tex-file-prefix) "-main-src"))
+
+
+
 (defun wysiwyg-tex-marker ()
     ".,.,.")
 
@@ -328,23 +341,30 @@ Open an error log buffer when one occurs.
 @returns:
 * Created PS file path on success.
 * nil on failure."
-  (let* ((dvipath (concat (wysiwyg-tex-file-prefix) ".dvi"))
-         (pspath (concat (wysiwyg-tex-file-prefix) ".ps")))
-    (message "Creating preview ...")
+  (message "Creating preview ...")
 
+  (wysiwyg-tex-erase-buffer (wysiwyg-tex-typesetting-log-buffer-name))
+  (if (not (eq (call-process wysiwyg-tex-tex2dvi-command nil
+                             (wysiwyg-tex-typesetting-log-buffer-name) t
+                             texpath)
+               0))
+      (progn (wysiwyg-tex-display-typesetting-err-log)
+             nil)
+
+    ;; Succeeded in 1st typesetting
     (wysiwyg-tex-erase-buffer (wysiwyg-tex-typesetting-log-buffer-name))
-    (if (not (eq (call-process wysiwyg-tex-tex2dvi-command nil
-                               (wysiwyg-tex-typesetting-log-buffer-name) t
-                               texpath)
-                 0))
-        (progn (wysiwyg-tex-display-typesetting-err-log)
-               nil)
 
-      ;; Succeeded in 1st typesetting
-      (wysiwyg-tex-erase-buffer (wysiwyg-tex-typesetting-log-buffer-name))
+    (if wysiwyg-tex-typeset-3-times
+        (progn
+          (if (not (eq (call-process wysiwyg-tex-tex2dvi-command nil
+                                     (wysiwyg-tex-typesetting-log-buffer-name) t
+                                     texpath)
+                       0))
+              (progn (wysiwyg-tex-display-typesetting-err-log)
+                     nil)
 
-      (if wysiwyg-tex-typeset-3-times
-          (progn
+            ;; Succeeded in 2nd typesetting
+            (wysiwyg-tex-erase-buffer (wysiwyg-tex-typesetting-log-buffer-name))
             (if (not (eq (call-process wysiwyg-tex-tex2dvi-command nil
                                        (wysiwyg-tex-typesetting-log-buffer-name) t
                                        texpath)
@@ -352,55 +372,60 @@ Open an error log buffer when one occurs.
                 (progn (wysiwyg-tex-display-typesetting-err-log)
                        nil)
 
-              ;; Succeeded in 2nd typesetting
-              (wysiwyg-tex-erase-buffer (wysiwyg-tex-typesetting-log-buffer-name))
-              (if (not (eq (call-process wysiwyg-tex-tex2dvi-command nil
-                                         (wysiwyg-tex-typesetting-log-buffer-name) t
-                                         texpath)
+              ;; Succeeded in 3rd typesetting
+              (if (not (eq (call-process wysiwyg-tex-dvi2ps-command nil
+                                         (wysiwyg-tex-dvi2ps-log-buffer-name) t
+                                         (wysiwyg-tex-tmp-dvi-name))
                            0))
-                  (progn (wysiwyg-tex-display-typesetting-err-log)
+                  (progn (wysiwyg-tex-display-dvi2ps-err-log)
                          nil)
+                (wysiwyg-tex-whole-ps-name)))))
 
-                ;; Succeeded in 3rd typesetting
-                (if (not (eq (call-process wysiwyg-tex-dvi2ps-command nil
-                                           (wysiwyg-tex-dvi2ps-log-buffer-name) t
-                                           dvipath)
-                             0))
-                    (progn (wysiwyg-tex-display-dvi2ps-err-log)
-                           nil)
-                  pspath))))
-
-        ;; Compile just 1 time.
-        (if (not (eq (call-process wysiwyg-tex-dvi2ps-command nil
-                                   (wysiwyg-tex-dvi2ps-log-buffer-name) t
-                                   dvipath)
-                     0))
-            (progn (wysiwyg-tex-display-dvi2ps-err-log)
-                   nil)
-          pspath)))))
+      ;; Compile just 1 time.
+      (if (not (eq (call-process wysiwyg-tex-dvi2ps-command nil
+                                 (wysiwyg-tex-dvi2ps-log-buffer-name) t
+                                 (wysiwyg-tex-tmp-dvi-name))
+                   0))
+          (progn (wysiwyg-tex-display-dvi2ps-err-log)
+                 nil)
+        (wysiwyg-tex-whole-ps-name)))))
 ;; (wysiwyg-tex-tex2ps "hoge.tex")
 
-(defun wysiwyg-tex-extract-page-with-marker (pspath)
+(defun wysiwyg-tex-extract-page-with-marker (psname)
   "Extract a page with (wysiwyg-tex-marker) and create new file with it.
 
 @side-effect:
 Create a file named \"(wysiwyg-tex-marker)-extracted-preview.ps\" on pwd.
 
 @parameters:
-pspath: PS file in which (wysiwyg-tex-marker) exists
+psname: PS file in which (wysiwyg-tex-marker) exists
 
 @returns:
-\"(wysiwyg-tex-marker)-extracted-preview.ps\""
-  (let ((page-with-marker (wysiwyg-tex-find-page-with-marker pspath))
-        (extracted-pspath (concat (wysiwyg-tex-file-prefix) "-extracted-preview.ps")))
+(wysiwyg-tex-extracted-ps-name)"
+  (let ((page-with-marker (wysiwyg-tex-find-page-with-marker psname)))
     (if (not (eq (call-process wysiwyg-tex-extract-ps-page-command nil
                                (wysiwyg-tex-extract-ps-page-log-buffer-name) t
                                page-with-marker
-                               pspath extracted-pspath)
+                               psname (wysiwyg-tex-extracted-ps-name))
                  0))
         (wysiwyg-tex-display-extract-ps-page-err-log)
-      extracted-pspath)))
+      (wysiwyg-tex-extracted-ps-name))))
 ;; (wysiwyg-tex-extract-page-with-marker "wysiwyg-tex-preview.ps")
+
+(defun wysiwyg-tex-get-main-tex-src ()
+  (defun wysiwyg-tex-main-src-name ()
+    (shell-command-to-string (concat "cat "
+                                     (wysiwyg-tex-main-src-reminder-name))))
+
+  (cond ((or (not (file-exists-p (wysiwyg-tex-main-src-reminder-name)))
+             (not (file-exists-p (wysiwyg-tex-main-src-name))))
+         (let ((main-src-name (read-file-name "Enter your main source file: " nil nil t)))
+           (shell-command (concat  "echo -n '" main-src-name "'"
+                                   " > " (wysiwyg-tex-main-src-reminder-name)))
+           main-src-name))
+
+        (t (wysiwyg-tex-main-src-name))))
+;; (wysiwyg-tex-get-main-tex-src)
 
 (defun wysiwyg-tex-show-preview ()
   "Create a preview of a page around which current cursor position is.
@@ -412,16 +437,16 @@ pspath: PS file in which (wysiwyg-tex-marker) exists
   (wysiwyg-tex-kill-buffer-if-exists (concat (wysiwyg-tex-file-prefix) ".ps"))
   (wysiwyg-tex-kill-buffer-if-exists (concat (wysiwyg-tex-file-prefix) "-extracted-preview.ps"))
 
-  (let ((orig-texpath (buffer-file-name))
-        (cp-texpath (concat (wysiwyg-tex-file-prefix) ".tex")))
-    (wysiwyg-tex-copy-tex-with-marker orig-texpath cp-texpath (point))
-
-    (let ((cp-pspath (wysiwyg-tex-tex2ps cp-texpath)))
-      (if (eq cp-pspath nil) (message "Failed in creating preview.")
+  (let ((orig-texpath (buffer-file-name)))
+    (wysiwyg-tex-copy-tex-with-marker orig-texpath
+                                      (wysiwyg-tex-tmp-tex-name)
+                                      (point))
+    (let ((tmp-psname (wysiwyg-tex-tex2ps (wysiwyg-tex-tmp-tex-name))))
+      (if (eq tmp-psname nil) (message "Failed in creating preview.")
 
         ;; When tex2ps succeeds
-        (let* ((preview-pspath (wysiwyg-tex-extract-page-with-marker cp-pspath))
-               (preview-buffer (find-file-read-only-other-window preview-pspath)))
+        (let* ((preview-psname (wysiwyg-tex-extract-page-with-marker tmp-psname))
+               (preview-buffer (find-file-read-only-other-window preview-psname)))
           (set-buffer preview-buffer)
           (doc-view-toggle-display))))))
 
@@ -433,15 +458,14 @@ pspath: PS file in which (wysiwyg-tex-marker) exists
 * Display an error log on failiur."
   (interactive)
   (wysiwyg-tex-kill-buffer-if-exists (concat (wysiwyg-tex-file-prefix) ".ps"))
-  (let ((orig-texpath (buffer-file-name))
-        (cp-texpath (concat (wysiwyg-tex-file-prefix) ".tex")))
-    (wysiwyg-tex-copy-tex orig-texpath cp-texpath)
+  (let ((orig-texpath (wysiwyg-tex-get-main-tex-src)))
+    (wysiwyg-tex-copy-tex orig-texpath (wysiwyg-tex-tmp-tex-name))
 
-    (let ((pspath (wysiwyg-tex-tex2ps cp-texpath)))
-      (if (eq pspath nil) (message "Failed in creating preview.")
+    (let ((psname (wysiwyg-tex-tex2ps (wysiwyg-tex-tmp-tex-name))))
+      (if (eq psname nil) (message "Failed in creating preview.")
 
         ;; When tex2ps succeeds
-        (let ((preview-buffer (find-file-read-only-other-window pspath)))
+        (let ((preview-buffer (find-file-read-only-other-window psname)))
           (set-buffer preview-buffer)
           (doc-view-toggle-display))))))
 
