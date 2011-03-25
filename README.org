@@ -117,14 +117,14 @@
         =ttf-japanese-mincho.otf= しかない場合，
 
         #+BEGIN_SRC sh
-         ls -l /usr/share/fonts/truetype/ttf-japanese-mincho.otf
+ls -l /usr/share/fonts/truetype/ttf-japanese-mincho.otf
         #+END_SRC
 
         により， ttf-japanese-mincho.otf が指している実体 (.ttf ファイ
         ルのはず) を調査．そして，
 
         #+BEGIN_SRC sh
-         ln -s <調査した実体のフルパス> /usr/share/fonts/truetype/ttf-japanese-mincho.ttf
+ln -s <調査した実体のフルパス> /usr/share/fonts/truetype/ttf-japanese-mincho.ttf
         #+END_SRC
 
         を実行．自分の場合はこれで doc-view-mode が正常に使えるように
