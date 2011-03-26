@@ -34,7 +34,8 @@
 
   - ~/.emacs に以下の設定を追加 (設定内容は適宜変更してください)
      #+BEGIN_SRC emacs-lisp
-(require 'wysiwyg-tex)
+(eval-after-load 'cl
+  '(require 'wysiwyg-tex))
 (add-hook 'tex-mode-hook   ; <.tex編集で使うモード>-hook
           '(lambda ()
              ;; 細かいカスタマイズ
@@ -135,8 +136,6 @@ ln -s <調査した実体のフルパス> /usr/share/fonts/truetype/ttf-japanese
 
 
 * 既知の問題
-  - /分割された TeX ファイルに対応していない/
-    - 割とすぐに対応できるかもしれません．できないかもしれません．
   - /カーソル位置によるページ当てが洗練されてない/
     - どこにカーソルがあっても当てられるようにしたいものです．これは時
       間掛かる気がします．掛からないかもしれません．
@@ -144,3 +143,11 @@ ln -s <調査した実体のフルパス> /usr/share/fonts/truetype/ttf-japanese
 
 * Follow Me on Twitter
   [[http://twitter.com/#!/laysakura][@laysakura]] でお待ちしてますよ!
+
+
+* 更新履歴
+  - v1.1:
+    - 分割した TEX ファイルに対応
+    - 同ファイル名を持つ異なる2ファイルのプレビューを同時に作成できな
+      い問題を修正
+  - v1.0: 公開開始

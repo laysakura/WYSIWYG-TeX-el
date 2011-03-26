@@ -62,6 +62,13 @@
 ;; If there is something wrong in TEX file, an error log appears instead of preview.
 
 
+;;; ChangeLog
+;; v1.1: * Made it possible to make preview of splitted TEX sources.
+;;       * Fixed a bug: Now it is possible to make preview of 2 different TEX file
+;;                      with the same file name at the same time.
+;; v1.0: First publish.
+
+
 ;;; Further Information:
 ;;
 ;; See: https://github.com/laysakura/WYSIWYG-TeX-el
