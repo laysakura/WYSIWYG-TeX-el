@@ -181,6 +181,8 @@ Normally, you don't need to change this variable."
 
 (defun wysiwyg-tex-tmp-tex-name ()
   (concat (wysiwyg-tex-file-prefix) ".tex"))
+(defun wysiwyg-tex-tmp-sub-tex-name ()
+  (concat (wysiwyg-tex-file-prefix) "-sub.tex"))
 (defun wysiwyg-tex-tmp-dvi-name ()
   (concat (wysiwyg-tex-file-prefix) ".dvi"))
 (defun wysiwyg-tex-whole-ps-name ()
@@ -193,7 +195,7 @@ Normally, you don't need to change this variable."
 
 
 (defun wysiwyg-tex-marker ()
-    ".,.,.")
+  ".,.,.")
 
 (defun wysiwyg-tex-marker-to-insert-in-tex ()
   (if wysiwyg-tex-using-color-package
@@ -208,6 +210,28 @@ Normally, you don't need to change this variable."
 
 (defun wysiwyg-tex-extract-ps-page-log-buffer-name ()
   "*WYSIWYG TeX - Last extracting page from PS*")
+
+
+
+
+;;; File utilities
+(defun wysiwyg-tex-extract-file-name-from-path (path)
+  "Returns file name of path.
+If path is not a full path, just returns path."
+  (if (string-match ".*\\/\\(.*\\)" path)
+      (match-string 1 path)
+    path))
+
+(defun wysiwyg-tex-replace-all-in (filepath from-str to-str)
+  (save-current-buffer
+    (save-excursion
+      (set-buffer (find-file-noselect filepath))
+      (goto-char (point-min))
+      (while (search-forward from-str nil t)
+        (replace-match to-str nil t))
+      (save-buffer)
+      (kill-buffer))))
+
 
 
 
@@ -288,12 +312,12 @@ Normally, you don't need to change this variable."
         (goto-char point)
         (insert (wysiwyg-tex-marker-to-insert-in-tex))
 
-;;         (goto-char (point-min))
-;;         (insert "\\font\\minhatiwysiwygtex=min10 at 0.0001pt
-;; \\font\\cmrhatiwysiwygtex=cmr10 at 0.0001pt
-;; \\def\\WYSIWYG-TEX-MARKER-SIZE{\\minhatiwysiwygtex\\cmrhatiwysiwygtex}
+        ;;         (goto-char (point-min))
+        ;;         (insert "\\font\\minhatiwysiwygtex=min10 at 0.0001pt
+        ;; \\font\\cmrhatiwysiwygtex=cmr10 at 0.0001pt
+        ;; \\def\\WYSIWYG-TEX-MARKER-SIZE{\\minhatiwysiwygtex\\cmrhatiwysiwygtex}
 
-;; ")
+        ;; ")
         (save-buffer)
         (kill-buffer tex-buffer))
       texpath)))
@@ -413,19 +437,30 @@ psname: PS file in which (wysiwyg-tex-marker) exists
 ;; (wysiwyg-tex-extract-page-with-marker "wysiwyg-tex-preview.ps")
 
 (defun wysiwyg-tex-get-main-tex-src ()
+  "Returns the full path of main TEX source."
   (defun wysiwyg-tex-main-src-name ()
     (shell-command-to-string (concat "cat "
                                      (wysiwyg-tex-main-src-reminder-name))))
 
   (cond ((or (not (file-exists-p (wysiwyg-tex-main-src-reminder-name)))
              (not (file-exists-p (wysiwyg-tex-main-src-name))))
-         (let ((main-src-name (read-file-name "Enter your main source file: " nil nil t)))
+         (let ((main-src-name (expand-file-name
+                               (read-file-name "Enter your main source file: " nil nil t))))
            (shell-command (concat  "echo -n '" main-src-name "'"
                                    " > " (wysiwyg-tex-main-src-reminder-name)))
            main-src-name))
 
-        (t (wysiwyg-tex-main-src-name))))
+        (t (expand-file-name (wysiwyg-tex-main-src-name)))))
 ;; (wysiwyg-tex-get-main-tex-src)
+
+(defun wysiwyg-tex-show-extracted-preview-after-typesetting (texpath)
+  (let ((tmp-psname (wysiwyg-tex-tex2ps texpath)))
+    (if (eq tmp-psname nil) (message "Failed in creating preview.")
+      ;; When tex2ps succeeds
+      (let* ((preview-psname (wysiwyg-tex-extract-page-with-marker tmp-psname))
+             (preview-buffer (find-file-read-only-other-window preview-psname)))
+        (set-buffer preview-buffer)
+        (doc-view-toggle-display)))))
 
 (defun wysiwyg-tex-show-preview ()
   "Create a preview of a page around which current cursor position is.
@@ -434,21 +469,41 @@ psname: PS file in which (wysiwyg-tex-marker) exists
 * Display a preview with 1 page on success.
 * Display an error log on failiur."
   (interactive)
-  (wysiwyg-tex-kill-buffer-if-exists (concat (wysiwyg-tex-file-prefix) ".ps"))
-  (wysiwyg-tex-kill-buffer-if-exists (concat (wysiwyg-tex-file-prefix) "-extracted-preview.ps"))
 
-  (let ((orig-texpath (buffer-file-name)))
-    (wysiwyg-tex-copy-tex-with-marker orig-texpath
+  (defun wysiwyg-tex-show-preview-of-main-src (main-src-name)
+    (wysiwyg-tex-copy-tex-with-marker main-src-name
                                       (wysiwyg-tex-tmp-tex-name)
                                       (point))
-    (let ((tmp-psname (wysiwyg-tex-tex2ps (wysiwyg-tex-tmp-tex-name))))
-      (if (eq tmp-psname nil) (message "Failed in creating preview.")
+    (wysiwyg-tex-show-extracted-preview-after-typesetting (wysiwyg-tex-tmp-tex-name)))
 
-        ;; When tex2ps succeeds
-        (let* ((preview-psname (wysiwyg-tex-extract-page-with-marker tmp-psname))
-               (preview-buffer (find-file-read-only-other-window preview-psname)))
-          (set-buffer preview-buffer)
-          (doc-view-toggle-display))))))
+  (defun wysiwyg-tex-show-preview-of-sub-src (sub-src-path main-src-path)
+    (defun wysiwyg-tex-replace-all-tex-filename-in (path-or-name from-name to-name)
+      (wysiwyg-tex-replace-all-in path-or-name from-name to-name)
+      (wysiwyg-tex-replace-all-in path-or-name
+                                  (progn (string-match "\\(.+\\)\.\\(tex\\|TEX\\)" from-name)
+                                         (match-string 1 from-name))
+                                  to-name))
+
+    (wysiwyg-tex-copy-tex-with-marker sub-src-path
+                                      (wysiwyg-tex-tmp-sub-tex-name)
+                                      (point))
+    (wysiwyg-tex-copy-tex main-src-path
+                          (wysiwyg-tex-tmp-tex-name))
+    (wysiwyg-tex-replace-all-tex-filename-in (wysiwyg-tex-tmp-tex-name)
+                                             (wysiwyg-tex-extract-file-name-from-path sub-src-path)
+                                             (wysiwyg-tex-tmp-sub-tex-name))
+    (wysiwyg-tex-show-extracted-preview-after-typesetting (wysiwyg-tex-tmp-tex-name)))
+
+
+  (wysiwyg-tex-kill-buffer-if-exists (wysiwyg-tex-whole-ps-name))
+  (wysiwyg-tex-kill-buffer-if-exists (wysiwyg-tex-extracted-ps-name))
+
+  (let ((main-src-name (wysiwyg-tex-get-main-tex-src)))
+    (message "Creating preview...")
+    (if (string-equal main-src-name (buffer-file-name))
+        (wysiwyg-tex-show-preview-of-main-src main-src-name)
+      (wysiwyg-tex-show-preview-of-sub-src (buffer-file-name) main-src-name))))
+
 
 (defun wysiwyg-tex-show-whole-preview ()
   "Create a preview of the whole page..
