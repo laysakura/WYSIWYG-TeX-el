@@ -34,7 +34,8 @@
 
   - ~/.emacs に以下の設定を追加 (設定内容は適宜変更してください)
      #+BEGIN_SRC emacs-lisp
-(require 'wysiwyg-tex)
+(eval-after-load 'cl
+  '(require 'wysiwyg-tex))
 (add-hook 'tex-mode-hook   ; <.tex編集で使うモード>-hook
           '(lambda ()
              ;; 細かいカスタマイズ
