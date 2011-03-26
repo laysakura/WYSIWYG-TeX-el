@@ -69,6 +69,7 @@
 
 ;;; Code:
 
+(require 'cl)
 (require 'doc-view)
 
 ;;; Customizable variables
@@ -215,6 +216,15 @@ Normally, you don't need to change this variable."
 
 
 ;;; File utilities
+(defun wysiwyg-tex-fullpath (name-or-fullpath)
+  "If 'name-or-fullpath' contains '/', just returns it.
+Otherwise, returns \"<current directory> / 'name-or-fullpath'"
+  (if (string-match-p ".*\\/.*" name-or-fullpath) name-or-fullpath
+    (concat (shell-command-to-string "echo -n `pwd`")
+            "/" name-or-fullpath)))
+;; (wysiwyg-tex-fullpath "hoge")
+;; (wysiwyg-tex-fullpath "/foo/hoge")
+
 (defun wysiwyg-tex-extract-file-name-from-path (path)
   "Returns file name of path.
 If path is not a full path, just returns path."
@@ -236,32 +246,50 @@ If path is not a full path, just returns path."
 
 
 ;;; Buffer control utilities
-(defun wysiwyg-tex-buffer-exists-p (buf-name)
-  "Returns if buffer with 'buf-name' exists."
-  (not (eq (get-buffer buf-name) nil)))
-;; (wysiwyg-tex-buffer-exists-p "*scratch*")
+(defun wysiwyg-tex-get-buffer-visiting (fullpath)
+  "If a buffer visiting 'fullpath' exists, returns its ID.
+Otherwise, returns nil."
+  (if (stringp fullpath)
+  (loop for buf in (buffer-list)
+        when (and (stringp (buffer-file-name buf))
+                  (string-equal (expand-file-name (buffer-file-name buf))
+                                (expand-file-name fullpath)))
+        return buf)))
+;; (wysiwyg-tex-get-buffer-visiting "~/src/myproject/wysiwyg-tex-el/wysiwyg-tex.el")
+;; (wysiwyg-tex-get-buffer-visiting "~/src/myproject/wysiwyg-tex-el/hogefoobar")
 
-(defun wysiwyg-tex-kill-buffer-if-exists (buf-name)
-  "Kills buffer with 'buf-name' if exists."
-  (if (wysiwyg-tex-buffer-exists-p buf-name)
-      (kill-buffer buf-name)))
+(defun wysiwyg-tex-buffer-exists-p (buffer-or-fullpath)
+  "Returns if buffer with 'buffer-or-fullpath' exists."
+  (if buffer-or-fullpath
+      (not (not (find (if (bufferp buffer-or-fullpath) buffer-or-fullpath
+                        (wysiwyg-tex-get-buffer-visiting buffer-or-fullpath))
+                      (buffer-list))))))
+;; (wysiwyg-tex-buffer-exists-p "~/src/myproject/wysiwyg-tex-el/wysiwyg-tex.el")
+;; (wysiwyg-tex-buffer-exists-p "~/src/myproject/wysiwyg-tex-el/hogefoobar")
+
+(defun wysiwyg-tex-kill-buffer-if-exists (buffer-or-fullpath)
+  "Kills buffer with 'buffer-or-fullpath' if exists."
+  (if (wysiwyg-tex-buffer-exists-p buffer-or-fullpath)
+      (kill-buffer (if (bufferp buffer-or-fullpath) buffer-or-fullpath
+                     (wysiwyg-tex-get-buffer-visiting buffer-or-fullpath)))))
 ;; (wysiwyg-tex-kill-buffer-if-exists "wysiwyg-tex-preview-extracted.ps")
 
-(defun wysiwyg-tex-erase-buffer (buf-name)
-  "Erases the whole contents of buffer with 'buf-name' if exists."
-  (if (wysiwyg-tex-buffer-exists-p buf-name)
+(defun wysiwyg-tex-erase-buffer-if-exsists (buffer-or-fullpath)
+  "Erases the whole contents of buffer with 'buffer-or-fullpath' if exists."
+  (if (wysiwyg-tex-buffer-exists-p buffer-or-fullpath)
       (save-current-buffer
-        (set-buffer buf-name)
+        (set-buffer (if (bufferp buffer-or-fullpath) buffer-or-fullpath
+                      (find-file-noselect buffer-or-fullpath)))
         (erase-buffer))))
-;; (wysiwyg-tex-erase-buffer "*scratch*")
+;; (wysiwyg-tex-erase-buffer (get-buffer "*scratch*"))
 
 
 ;;; Logs
-(defun wysiwyg-tex-display-buffer-with-header (buf-name header-message)
-  "Insert 'header-message' in the beginning of 'buf-name' and display it."
+(defun wysiwyg-tex-display-buffer-with-header (buffer header-message)
+  "Insert 'header-message' in the beginning of 'buffer' and display it."
   (save-current-buffer
     (save-excursion
-      (set-buffer buf-name)
+      (set-buffer buffer)
       (goto-char (point-min))
       (insert (concat header-message
                       "
@@ -269,13 +297,13 @@ If path is not a full path, just returns path."
 =*=*=*=*=*=*=*=*=*=*=*=*
 
 "))))
-  (display-buffer buf-name))
-;; (wysiwyg-tex-display-buffer-with-header "*scratch*" "hello from wysiwyg-tex")
+  (display-buffer buffer))
+;; (wysiwyg-tex-display-buffer-with-header (get-buffer "*scratch*") "hello from wysiwyg-tex")
 
 (defun wysiwyg-tex-display-typesetting-err-log ()
   "Display error log while typesetting"
   (wysiwyg-tex-display-buffer-with-header
-   (wysiwyg-tex-typesetting-log-buffer-name)
+   (get-buffer (wysiwyg-tex-typesetting-log-buffer-name))
    (concat "["
            wysiwyg-tex-tex2dvi-command
            "] Failed in typesetting. See the typesetting log below.")))
@@ -283,7 +311,7 @@ If path is not a full path, just returns path."
 (defun wysiwyg-tex-display-dvi2ps-err-log ()
   "Display error log while converting DVI into PS"
   (wysiwyg-tex-display-buffer-with-header
-   (wysiwyg-tex-dvi2ps-log-buffer-name)
+   (get-buffer (wysiwyg-tex-dvi2ps-log-buffer-name))
    (concat "["
            wysiwyg-tex-dvi2ps-command
            "] Failed in converting DVI into PS. See the log below.")))
@@ -291,7 +319,7 @@ If path is not a full path, just returns path."
 (defun wysiwyg-tex-display-extract-ps-page-err-log ()
   "Display error log while extracting specific pages from PS"
   (wysiwyg-tex-display-buffer-with-header
-   (wysiwyg-tex-extract-ps-page-log-buffer-name)
+   (get-buffer (wysiwyg-tex-extract-ps-page-log-buffer-name))
    (concat "["
            wysiwyg-tex-extract-ps-page-command
            "] Failed in extracting pages. See typesetting log below.")))
@@ -353,7 +381,7 @@ Page number with (wysiwyg-tex-marker) by string"
         (let ((ret (match-string 1)))
           (kill-buffer ps-buffer)
           ret)))))
-;; (wysiwyg-tex-find-page-with-marker "wysiwyg-tex-preview.ps")
+;; (wysiwyg-tex-find-page-with-marker (wysiwyg-tex-fullpath "wysiwyg-tex-preview.ps"))
 
 
 (defun wysiwyg-tex-tex2ps (texpath)
@@ -367,7 +395,8 @@ Open an error log buffer when one occurs.
 * nil on failure."
   (message "Creating preview ...")
 
-  (wysiwyg-tex-erase-buffer (wysiwyg-tex-typesetting-log-buffer-name))
+  (wysiwyg-tex-erase-buffer-if-exsists (get-buffer
+                                        (wysiwyg-tex-typesetting-log-buffer-name)))
   (if (not (eq (call-process wysiwyg-tex-tex2dvi-command nil
                              (wysiwyg-tex-typesetting-log-buffer-name) t
                              texpath)
@@ -376,7 +405,8 @@ Open an error log buffer when one occurs.
              nil)
 
     ;; Succeeded in 1st typesetting
-    (wysiwyg-tex-erase-buffer (wysiwyg-tex-typesetting-log-buffer-name))
+    (wysiwyg-tex-erase-buffer-if-exsists (get-buffer
+                                          (wysiwyg-tex-typesetting-log-buffer-name)))
 
     (if wysiwyg-tex-typeset-3-times
         (progn
@@ -388,7 +418,8 @@ Open an error log buffer when one occurs.
                      nil)
 
             ;; Succeeded in 2nd typesetting
-            (wysiwyg-tex-erase-buffer (wysiwyg-tex-typesetting-log-buffer-name))
+            (wysiwyg-tex-erase-buffer-if-exsists (get-buffer
+                                                  (wysiwyg-tex-typesetting-log-buffer-name)))
             (if (not (eq (call-process wysiwyg-tex-tex2dvi-command nil
                                        (wysiwyg-tex-typesetting-log-buffer-name) t
                                        texpath)
@@ -397,6 +428,8 @@ Open an error log buffer when one occurs.
                        nil)
 
               ;; Succeeded in 3rd typesetting
+              (wysiwyg-tex-erase-buffer-if-exsists (get-buffer
+                                                    (wysiwyg-tex-dvi2ps-log-buffer-name)))
               (if (not (eq (call-process wysiwyg-tex-dvi2ps-command nil
                                          (wysiwyg-tex-dvi2ps-log-buffer-name) t
                                          (wysiwyg-tex-tmp-dvi-name))
@@ -406,6 +439,8 @@ Open an error log buffer when one occurs.
                 (wysiwyg-tex-whole-ps-name)))))
 
       ;; Compile just 1 time.
+      (wysiwyg-tex-erase-buffer-if-exsists (get-buffer
+                                            (wysiwyg-tex-dvi2ps-log-buffer-name)))
       (if (not (eq (call-process wysiwyg-tex-dvi2ps-command nil
                                  (wysiwyg-tex-dvi2ps-log-buffer-name) t
                                  (wysiwyg-tex-tmp-dvi-name))
@@ -415,26 +450,28 @@ Open an error log buffer when one occurs.
         (wysiwyg-tex-whole-ps-name)))))
 ;; (wysiwyg-tex-tex2ps "hoge.tex")
 
-(defun wysiwyg-tex-extract-page-with-marker (psname)
+(defun wysiwyg-tex-extract-page-with-marker (pspath)
   "Extract a page with (wysiwyg-tex-marker) and create new file with it.
 
 @side-effect:
 Create a file named \"(wysiwyg-tex-marker)-extracted-preview.ps\" on pwd.
 
 @parameters:
-psname: PS file in which (wysiwyg-tex-marker) exists
+pspath: PS file in which (wysiwyg-tex-marker) exists
 
 @returns:
-(wysiwyg-tex-extracted-ps-name)"
-  (let ((page-with-marker (wysiwyg-tex-find-page-with-marker psname)))
+Full path of (wysiwyg-tex-extracted-ps-name)"
+  (let ((page-with-marker (wysiwyg-tex-find-page-with-marker pspath)))
+    (wysiwyg-tex-erase-buffer-if-exsists (get-buffer
+                                          (wysiwyg-tex-extract-ps-page-log-buffer-name)))
     (if (not (eq (call-process wysiwyg-tex-extract-ps-page-command nil
                                (wysiwyg-tex-extract-ps-page-log-buffer-name) t
                                page-with-marker
-                               psname (wysiwyg-tex-extracted-ps-name))
+                               pspath (wysiwyg-tex-extracted-ps-name))
                  0))
         (wysiwyg-tex-display-extract-ps-page-err-log)
-      (wysiwyg-tex-extracted-ps-name))))
-;; (wysiwyg-tex-extract-page-with-marker "wysiwyg-tex-preview.ps")
+      (wysiwyg-tex-fullpath (wysiwyg-tex-extracted-ps-name)))))
+;; (wysiwyg-tex-extract-page-with-marker (wysiwyg-tex-fullpath "wysiwyg-tex-preview.ps"))
 
 (defun wysiwyg-tex-get-main-tex-src ()
   "Returns the full path of main TEX source."
@@ -454,11 +491,11 @@ psname: PS file in which (wysiwyg-tex-marker) exists
 ;; (wysiwyg-tex-get-main-tex-src)
 
 (defun wysiwyg-tex-show-extracted-preview-after-typesetting (texpath)
-  (let ((tmp-psname (wysiwyg-tex-tex2ps texpath)))
-    (if (eq tmp-psname nil) (message "Failed in creating preview.")
+  (let ((tmp-pspath (wysiwyg-tex-tex2ps texpath)))
+    (if (eq tmp-pspath nil) (message "Failed in creating preview.")
       ;; When tex2ps succeeds
-      (let* ((preview-psname (wysiwyg-tex-extract-page-with-marker tmp-psname))
-             (preview-buffer (find-file-read-only-other-window preview-psname)))
+      (let* ((preview-pspath (wysiwyg-tex-extract-page-with-marker tmp-pspath))
+             (preview-buffer (find-file-read-only-other-window preview-pspath)))
         (set-buffer preview-buffer)
         (doc-view-toggle-display)))))
 
@@ -470,57 +507,60 @@ psname: PS file in which (wysiwyg-tex-marker) exists
 * Display an error log on failiur."
   (interactive)
 
-  (defun wysiwyg-tex-show-preview-of-main-src (main-src-name)
-    (wysiwyg-tex-copy-tex-with-marker main-src-name
-                                      (wysiwyg-tex-tmp-tex-name)
+  (defun wysiwyg-tex-show-preview-of-main-src (main-src-path)
+    (wysiwyg-tex-copy-tex-with-marker main-src-path
+                                      (wysiwyg-tex-fullpath (wysiwyg-tex-tmp-tex-name))
                                       (point))
-    (wysiwyg-tex-show-extracted-preview-after-typesetting (wysiwyg-tex-tmp-tex-name)))
+    (wysiwyg-tex-show-extracted-preview-after-typesetting
+     (wysiwyg-tex-fullpath (wysiwyg-tex-tmp-tex-name))))
 
   (defun wysiwyg-tex-show-preview-of-sub-src (sub-src-path main-src-path)
-    (defun wysiwyg-tex-replace-all-tex-filename-in (path-or-name from-name to-name)
-      (wysiwyg-tex-replace-all-in path-or-name from-name to-name)
-      (wysiwyg-tex-replace-all-in path-or-name
+    (defun wysiwyg-tex-replace-all-tex-filename-in (texpath from-name to-name)
+      (wysiwyg-tex-replace-all-in texpath from-name to-name)
+      (wysiwyg-tex-replace-all-in texpath
                                   (progn (string-match "\\(.+\\)\.\\(tex\\|TEX\\)" from-name)
                                          (match-string 1 from-name))
                                   to-name))
 
     (wysiwyg-tex-copy-tex-with-marker sub-src-path
-                                      (wysiwyg-tex-tmp-sub-tex-name)
+                                      (wysiwyg-tex-fullpath (wysiwyg-tex-tmp-sub-tex-name))
                                       (point))
     (wysiwyg-tex-copy-tex main-src-path
                           (wysiwyg-tex-tmp-tex-name))
     (wysiwyg-tex-replace-all-tex-filename-in (wysiwyg-tex-tmp-tex-name)
                                              (wysiwyg-tex-extract-file-name-from-path sub-src-path)
                                              (wysiwyg-tex-tmp-sub-tex-name))
-    (wysiwyg-tex-show-extracted-preview-after-typesetting (wysiwyg-tex-tmp-tex-name)))
+    (wysiwyg-tex-show-extracted-preview-after-typesetting
+     (wysiwyg-tex-fullpath (wysiwyg-tex-tmp-tex-name))))
 
 
-  (wysiwyg-tex-kill-buffer-if-exists (wysiwyg-tex-whole-ps-name))
-  (wysiwyg-tex-kill-buffer-if-exists (wysiwyg-tex-extracted-ps-name))
+  (wysiwyg-tex-kill-buffer-if-exists (wysiwyg-tex-fullpath (wysiwyg-tex-whole-ps-name)))
+  (wysiwyg-tex-kill-buffer-if-exists (wysiwyg-tex-fullpath (wysiwyg-tex-extracted-ps-name)))
 
-  (let ((main-src-name (wysiwyg-tex-get-main-tex-src)))
+  (let ((main-src-path (wysiwyg-tex-get-main-tex-src)))
     (message "Creating preview...")
-    (if (string-equal main-src-name (buffer-file-name))
-        (wysiwyg-tex-show-preview-of-main-src main-src-name)
-      (wysiwyg-tex-show-preview-of-sub-src (buffer-file-name) main-src-name))))
+    (if (eq (wysiwyg-tex-get-buffer-visiting main-src-path)
+            (current-buffer))
+        (wysiwyg-tex-show-preview-of-main-src main-src-path)
+      (wysiwyg-tex-show-preview-of-sub-src (buffer-file-name) main-src-path))))
 
 
 (defun wysiwyg-tex-show-whole-preview ()
-  "Create a preview of the whole page..
+  "Create a preview of the whole page.
 
 @side-effect:
 * Display a preview with whole page on success.
 * Display an error log on failiur."
   (interactive)
-  (wysiwyg-tex-kill-buffer-if-exists (concat (wysiwyg-tex-file-prefix) ".ps"))
+  (wysiwyg-tex-kill-buffer-if-exists (wysiwyg-tex-fullpath (wysiwyg-tex-whole-ps-name)))
   (let ((orig-texpath (wysiwyg-tex-get-main-tex-src)))
-    (wysiwyg-tex-copy-tex orig-texpath (wysiwyg-tex-tmp-tex-name))
+    (wysiwyg-tex-copy-tex orig-texpath (wysiwyg-tex-fullpath (wysiwyg-tex-tmp-tex-name)))
 
-    (let ((psname (wysiwyg-tex-tex2ps (wysiwyg-tex-tmp-tex-name))))
-      (if (eq psname nil) (message "Failed in creating preview.")
+    (let ((pspath (wysiwyg-tex-tex2ps (wysiwyg-tex-fullpath (wysiwyg-tex-tmp-tex-name)))))
+      (if (eq pspath nil) (message "Failed in creating preview.")
 
         ;; When tex2ps succeeds
-        (let ((preview-buffer (find-file-read-only-other-window psname)))
+        (let ((preview-buffer (find-file-read-only-other-window pspath)))
           (set-buffer preview-buffer)
           (doc-view-toggle-display))))))
 
