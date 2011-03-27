@@ -28,7 +28,7 @@
 * インストール
   - [[https://github.com/laysakura/WYSIWYG-TeX-el/raw/master/wysiwyg-tex.el][https://github.com/laysakura/WYSIWYG-TeX-el/raw/master/wysiwyg-tex.el]]
     をダウンロード
-  - https://github.com/laysakura/doc-view-fit-to-page/raw/master/doc-view-fit-page.el
+  - [[https://github.com/laysakura/doc-view-fit-to-page/raw/master/doc-view-fit-page.el][https://github.com/laysakura/doc-view-fit-to-page/raw/master/doc-view-fit-page.el]]
     もダウンロード
   - wysiwyg-tex.el と doc-view-fit-page.el を，ロードパスの通ったディレクトリに置く
   - wysiwyg-tex.el と doc-view-fit-page.el を以下のようにバイトコンパイル
