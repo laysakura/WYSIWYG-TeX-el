@@ -63,6 +63,8 @@
 
 
 ;;; ChangeLog
+;; v1.2: Added Fit-to-page feature.
+;;
 ;; v1.1: * Made it possible to make preview of splitted TEX sources.
 ;;       * Fixed a bug: Now it is possible to make preview of 2 different TEX file
 ;;                      with the same file name at the same time.
@@ -78,6 +80,7 @@
 
 (eval-when-compile (require 'cl))
 (require 'doc-view)
+(require 'doc-view-fit-page)
 
 ;;; Customizable variables
 (defgroup wysiwyg-tex nil
@@ -128,24 +131,14 @@ where PAGE-NUM is single integer which specify a page."
   :group 'wysiwyg-tex)
 
 
-(defcustom wysiwyg-tex-using-color-package t
-  "If you always \\usepackage{color}, set 't'.
-Otherwise, set 'nil'.
+(defcustom wysiwyg-tex-doc-view-fit-preview 1
+  "Option to fit preview image to buffer window.
 
-How is this variable used:
-If this variable is 't', this emacs lisp inserts (NOT in your TEX file :-D ) a marker.
-More precisely, it inserts
-
-    \\mbox{\\textcolor{white}{.,.,.}\\hspace{-5.0ex}}
-
-So, in order to set the marker color white, you need to \\usepackage{color}.
-If this variable is 'nil', this emacs lisp uses a marker below:
-
-    \\mbox{.,.,.\\hspace{-5.0ex}}
-
-This marker might annoy you, so I recommend you to always \\usepackage{color}
-and set this variable 't'."
-  :type '(boolean)
+  * '1' means fit width of image to buffer.
+  * '2' means fit height of image to buffer.
+  * '3' means fit max {width, height} of image to buffer.
+  * Otherwise, do nothing to fit image to buffer."
+  :type '(integer)
   :group 'wysiwyg-tex)
 
 (defcustom wysiwyg-tex-using-color-package nil
@@ -499,14 +492,23 @@ Full path of (wysiwyg-tex-extracted-ps-name)"
         (t (expand-file-name (wysiwyg-tex-main-src-name)))))
 ;; (wysiwyg-tex-get-main-tex-src)
 
+(defun wysiwyg-tex-show-psfile (path)
+  "Show PS file with 'path' in DocViewMode."
+  (let ((preview-buffer (find-file-read-only-other-window path)))
+    (set-buffer preview-buffer)
+    (doc-view-toggle-display)
+
+    ;; Fit to window
+    (cond ((eq wysiwyg-tex-doc-view-fit-preview 1) (doc-view-fit-width))
+          ((eq wysiwyg-tex-doc-view-fit-preview 2) (doc-view-fit-height))
+          ((eq wysiwyg-tex-doc-view-fit-preview 3) (doc-view-fit-page)))))
+
 (defun wysiwyg-tex-show-extracted-preview-after-typesetting (texpath)
+  "Typeset 'texpath', then search marker to extract page with it and show it."
   (let ((tmp-pspath (wysiwyg-tex-tex2ps texpath)))
     (if (eq tmp-pspath nil) (message "Failed in creating preview.")
       ;; When tex2ps succeeds
-      (let* ((preview-pspath (wysiwyg-tex-extract-page-with-marker tmp-pspath))
-             (preview-buffer (find-file-read-only-other-window preview-pspath)))
-        (set-buffer preview-buffer)
-        (doc-view-toggle-display)))))
+      (wysiwyg-tex-show-psfile (wysiwyg-tex-extract-page-with-marker tmp-pspath)))))
 
 (defun wysiwyg-tex-show-preview ()
   "Create a preview of a page around which current cursor position is.
@@ -569,8 +571,6 @@ Full path of (wysiwyg-tex-extracted-ps-name)"
       (if (eq pspath nil) (message "Failed in creating preview.")
 
         ;; When tex2ps succeeds
-        (let ((preview-buffer (find-file-read-only-other-window pspath)))
-          (set-buffer preview-buffer)
-          (doc-view-toggle-display))))))
+        (wysiwyg-tex-show-psfile pspath)))))
 
 (provide 'wysiwyg-tex)

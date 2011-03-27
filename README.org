@@ -27,10 +27,13 @@
 
 * インストール
   - [[https://github.com/laysakura/WYSIWYG-TeX-el/raw/master/wysiwyg-tex.el][https://github.com/laysakura/WYSIWYG-TeX-el/raw/master/wysiwyg-tex.el]]
-     をダウンロード
-  - wysiwyg-tex.el を，ロードパスの通ったディレクトリに置く
-  - wysiwyg-tex.el を以下のようにバイトコンパイル
+    をダウンロード
+  - https://github.com/laysakura/doc-view-fit-to-page/raw/master/doc-view-fit-page.el
+    もダウンロード
+  - wysiwyg-tex.el と doc-view-fit-page.el を，ロードパスの通ったディレクトリに置く
+  - wysiwyg-tex.el と doc-view-fit-page.el を以下のようにバイトコンパイル
      : \M-x byte-compile-file [RET] /path/to/wysiwyg-tex.el
+     : \M-x byte-compile-file [RET] /path/to/doc-view-fit-page.el
 
   - ~/.emacs に以下の設定を追加 (設定内容は適宜変更してください)
      #+BEGIN_SRC emacs-lisp
@@ -41,7 +44,14 @@
              ;; 細かいカスタマイズ
              (setq wysiwyg-tex-tex2dvi-command "platex" ; TEX から DVI に変換するコマンド (デフォルト "latex")
                    wysiwyg-tex-using-color-package t ; TeX でいつも \usepackage{color} をしているか (デフォルト nil)
-                   wysiwyg-tex-typeset-3-times t) ; タイプセットを3回繰り返すか (デフォルト t)
+                   wysiwyg-tex-typeset-3-times t ; タイプセットを3回繰り返すか (デフォルト t)
+
+                   wysiwyg-tex-doc-view-fit-preview 1
+                   ;; 1: プレビューの幅をバッファウィンドウに合わせる (デフォルト)
+                   ;; 2: プレビューの高さをバッファウィンドウに合わせる
+                   ;; 3: プレビューがバッファウィンドウに収まるように幅か高さを合わせる
+                   ;; それ以外: プレビューの大きさ自動調整をしない
+                )
 
              ;; tex-mode のみで有効なキーバインド
              (local-set-key "\C-c\C-p" 'wysiwyg-tex-show-preview) ; 編集中ページのみプレビュー
@@ -67,11 +77,6 @@
   : \M-x customize [RET] -> Wysiwyg Tex
   で確認できます．また， wysiwyg-tex.el のソース中の "defcustom" で定
   義された変数でもありますので，ソースで確認したい方はそちらをどうぞ．
-
-  また， *プレビューのサイズを変更できます．* これは doc-view.el の変
-  数を調整する必要があります． .emacs に以下の設定を追加しましょう．
-
-  : (setq doc-view-resolution 70) ; 数値はパーセンテージを指定．デフォルトは100．
 
 * よくありそうな質問
   - /プレビューの表示されたバッファの操作方法がよく分からない/
@@ -154,6 +159,7 @@ ln -s <調査した実体のフルパス> /usr/share/fonts/truetype/ttf-japanese
 
 
 * 更新履歴
+  - v1.2: プレビュー画像をバッファウィンドウに合わせられうようにした
   - v1.1:
     - 分割した TEX ファイルに対応
     - 同ファイル名を持つ異なる2ファイルのプレビューを同時に作成できな
