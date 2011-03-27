@@ -76,13 +76,15 @@
 
 ;;; Code:
 
-(require 'cl)
+(eval-when-compile (require 'cl))
 (require 'doc-view)
 
 ;;; Customizable variables
 (defgroup wysiwyg-tex nil
-  "WYSIWYG TeX"
-  :group 'emacs)
+  "WYSIWYG-TeX"
+  :version "23.1.1"
+  :group 'applications
+  :group 'multimedia)
 
 (defcustom wysiwyg-tex-tex2dvi-command "latex"
   "Command to create DVI from TEX.
