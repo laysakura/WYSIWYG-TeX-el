@@ -40,13 +40,21 @@
 ;;
 ;; Add following settings on ~/.emacs
 ;;
-;; (require 'wysiwyg-tex)
+;; (eval-after-load 'cl
+;;   '(require 'wysiwyg-tex))
 ;; (add-hook 'tex-mode-hook   ; <mode-you-use-when-editting-tex>-hook
 ;;           '(lambda ()
 ;;              ;; Customizeable variables
 ;;              (setq wysiwyg-tex-tex2dvi-command "latex" ; Command to convert TEX into DVI. ("latex" by default)
 ;;                    wysiwyg-tex-using-color-package t ; Whether to always \usepackage{color}. (nil by default)
-;;                    wysiwyg-tex-typeset-3-times t) ; Whether to repeat typesetting 3 times (t by default)
+;;                    wysiwyg-tex-typeset-3-times t ; Whether to repeat typesetting 3 times (t by default)
+;;
+;;                    wysiwyg-tex-doc-view-fit-preview 1
+;;                    ;; '1' means fit width of image to buffer.
+;;                    ;; '2' means fit height of image to buffer.
+;;                    ;; '3' means fit max {width, height} of image to buffer.
+;;                    ;; Otherwise, do nothing to fit image to buffer."
+;;                 )
 ;;
 ;;              ;; key-binds for tex-mode
 ;;              (local-set-key "\C-c\C-p" 'wysiwyg-tex-show-preview) ; Displays a page around cursor.
